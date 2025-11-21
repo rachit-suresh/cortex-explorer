@@ -1,0 +1,49 @@
+# Node
+node_modules/
+.env
+.env.*
+
+# Build outputs
+dist/
+.cache/
+
+# Vite
+.vite/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# macOS
+.DS_Store
+
+# Editor directories and files
+.vscode/
+.idea/
+
+# Coverage
+coverage/
+
+# Local env
+/local.env
+
+# Ignore distribution maps etc
+dist/**/*.map
+
+# System files
+Thumbs.db
+
+# Optional: lockfiles for CI
+package-lock.json
+yarn.lock
+pnp.*
+
+# React Flow state snapshot
+.reactflow/
+
+# Tailwind cache
+.tailwind-cache

@@ -7,10 +7,12 @@ import {
   ArrowRight,
   Plus,
   X,
+  Search,
+  Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getAugmentedTree, addCustomNode } from "../../utils/treeUtils";
-import { InterestNode } from "../../types";
+import { useGraphStore } from "../../store/graphStore";
+import { GraphNode } from "../../types";
 
 const NEO_COLORS = [
   "bg-[#facc15]", // Yellow
@@ -31,58 +33,61 @@ const getNodeColorClass = (id: string) => {
 
 export const CategoryExplorer = () => {
   const navigate = useNavigate();
+  const { nodes, edges, addNode, addEdge, generateAndAddPath, isLoading } =
+    useGraphStore();
+
   // Stack of nodes to represent the current path (breadcrumbs)
-  const [path, setPath] = useState<InterestNode[]>([]);
+  const [path, setPath] = useState<GraphNode[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isAddingCustom, setIsAddingCustom] = useState(false);
   const [customName, setCustomName] = useState("");
-  const [tree, setTree] = useState<InterestNode[]>(getAugmentedTree());
+  const [aiSearchQuery, setAiSearchQuery] = useState("");
 
   // Current view is either the root or the children of the last node in path
-  // We need to find the current node in the FRESH tree to get updated children
-  const currentNodeInTree =
-    path.length === 0 ? null : findNodeInTree(path[path.length - 1].id, tree);
+  const currentParentId = path.length > 0 ? path[path.length - 1].id : null;
 
-  const currentNodes = currentNodeInTree
-    ? currentNodeInTree.children || []
-    : tree;
-
-  function findNodeInTree(
-    id: string,
-    nodes: InterestNode[]
-  ): InterestNode | null {
-    for (const node of nodes) {
-      if (node.id === id) return node;
-      if (node.children) {
-        const found = findNodeInTree(id, node.children);
-        if (found) return found;
-      }
+  const currentNodes = Object.values(nodes).filter((node) => {
+    if (currentParentId) {
+      // Find nodes connected from currentParentId
+      return edges.some(
+        (e) => e.source === currentParentId && e.target === node.id
+      );
+    } else {
+      // Root nodes (no incoming edges or type root)
+      return node.type === "root";
     }
-    return null;
-  }
+  });
 
-  const handleNodeClick = (node: InterestNode) => {
-    // Always allow entering a node if it's a category OR if we want to add children to it
-    // For custom nodes, we treat them as potential categories
+  const handleNodeClick = (node: GraphNode) => {
+    console.log(
+      `[CategoryExplorer] 👆 User clicked node: "${node.label}" (${node.id})`
+    );
     setPath([...path, node]);
   };
 
   const toggleSelection = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent entering the node when clicking the checkmark
+    e.stopPropagation();
     const newSelected = new Set(selectedIds);
     if (newSelected.has(id)) {
+      console.log(`[CategoryExplorer] ☑ User deselected: ${id}`);
       newSelected.delete(id);
     } else {
+      console.log(`[CategoryExplorer] ✓ User selected: ${id}`);
       newSelected.add(id);
     }
     setSelectedIds(newSelected);
   };
 
   const handleBack = () => {
+    console.log(`[CategoryExplorer] ← User navigated back`);
     setPath(path.slice(0, -1));
   };
 
   const handleFinish = () => {
+    console.log(
+      `[CategoryExplorer] ✅ User finished onboarding with ${selectedIds.size} selections:`,
+      Array.from(selectedIds)
+    );
     localStorage.setItem(
       "userSelectedIds",
       JSON.stringify(Array.from(selectedIds))
@@ -90,30 +95,83 @@ export const CategoryExplorer = () => {
     navigate("/map");
   };
 
+  const handleAiSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiSearchQuery.trim() || isLoading) return;
+    console.log(
+      `[CategoryExplorer] 🔍 User initiated AI search: "${aiSearchQuery}"`
+    );
+    await generateAndAddPath(aiSearchQuery);
+    setAiSearchQuery("");
+    console.log(`[CategoryExplorer] ✓ AI search completed`);
+  };
+
   const handleAddCustom = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customName.trim()) return;
+    console.log(
+      `[CategoryExplorer] ➕ User adding custom node: "${customName}"`
+    );
 
-    const parentId = path.length > 0 ? path[path.length - 1].id : undefined;
-    // Default to 'category' so we can add children to it later
-    const type = "category";
-
-    const newNode: InterestNode = {
-      id: `custom-${Date.now()}`,
+    const newNodeId = `custom-${Date.now()}`;
+    const newNode: GraphNode = {
+      id: newNodeId,
       label: customName.trim(),
-      type,
-      parentId,
-      children: [],
+      type: "category",
+      data: {},
+      position: { x: 0, y: 0 },
     };
 
-    addCustomNode(newNode);
-    setTree(getAugmentedTree());
+    if (!currentParentId) {
+      newNode.type = "root";
+    }
+
+    addNode(newNode);
+
+    if (currentParentId) {
+      addEdge({
+        id: `${currentParentId}-${newNodeId}`,
+        source: currentParentId,
+        target: newNodeId,
+      });
+    }
+
     setCustomName("");
     setIsAddingCustom(false);
+    console.log(`[CategoryExplorer] ✓ Custom node added: ${newNodeId}`);
   };
 
   return (
     <div className="max-w-5xl mx-auto mt-8 p-6">
+      {/* AI Search Bar */}
+      <div className="mb-6">
+        <form
+          onSubmit={handleAiSearch}
+          className="relative flex items-center w-full"
+        >
+          <div className="relative w-full">
+            <input
+              type="text"
+              value={aiSearchQuery}
+              onChange={(e) => setAiSearchQuery(e.target.value)}
+              placeholder="AI Search: Describe your interest (e.g., 'Forlorn', 'Formula 1')..."
+              className="w-full px-4 py-3 pl-12 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:translate-x-[2px] focus:translate-y-[2px] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-bold placeholder:font-normal text-sm"
+              disabled={isLoading}
+            />
+            <div className="absolute left-4 top-1/2 -translate-y-1/2">
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-black" />
+              ) : (
+                <Search className="w-5 h-5 text-black" />
+              )}
+            </div>
+          </div>
+        </form>
+        <p className="text-xs text-gray-600 mt-2 font-semibold">
+          💡 Use AI to explore topics, or manually browse categories below
+        </p>
+      </div>
+
       {/* Header & Breadcrumbs */}
       <div className="mb-8">
         <h2 className="text-4xl font-black uppercase mb-4">
@@ -154,6 +212,9 @@ export const CategoryExplorer = () => {
           {currentNodes.map((node) => {
             const isSelected = selectedIds.has(node.id);
             const colorClass = getNodeColorClass(node.id);
+
+            // Check if node has children (outgoing edges)
+            const hasChildren = edges.some((e) => e.source === node.id);
 
             return (
               <motion.div
@@ -197,11 +258,9 @@ export const CategoryExplorer = () => {
 
                 <div className="mt-4 flex justify-between items-end">
                   <span className="text-xs font-bold text-gray-500 uppercase">
-                    {node.children?.length
-                      ? `${node.children.length} Sub-topics`
-                      : "Item"}
+                    {hasChildren ? "Has Sub-topics" : "Item"}
                   </span>
-                  {node.children && node.children.length > 0 && (
+                  {hasChildren && (
                     <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   )}
                 </div>

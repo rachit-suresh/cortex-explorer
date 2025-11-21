@@ -12,13 +12,13 @@ export const getLayoutedElements = (
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-  dagreGraph.setGraph({ 
+  dagreGraph.setGraph({
     rankdir: direction,
     nodesep: 80,
     ranksep: 120,
     edgesep: 50,
     marginx: 50,
-    marginy: 50
+    marginy: 50,
   });
 
   nodes.forEach((node) => {

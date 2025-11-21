@@ -80,7 +80,9 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
   },
 
   deleteNode: (nodeId, cascade = false) => {
-    logger.log(`[Graph Store] 🗑️ Deleting node: ${nodeId} (cascade: ${cascade})`);
+    logger.log(
+      `[Graph Store] 🗑️ Deleting node: ${nodeId} (cascade: ${cascade})`
+    );
     set((state) => {
       const newNodes = { ...state.nodes };
       const nodesToDelete = new Set([nodeId]);

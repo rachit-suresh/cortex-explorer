@@ -11,17 +11,23 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@types/d3-hierarchy": "^3.1.7",
+    "@types/dagre": "^0.7.53",
+    "@types/fast-levenshtein": "^0.0.4",
     "clsx": "^2.0.0",
     "d3-force": "^3.0.0",
     "d3-hierarchy": "^3.1.2",
+    "dagre": "^0.8.5",
+    "fast-levenshtein": "^3.0.0",
     "framer-motion": "^10.16.4",
     "lucide-react": "^0.292.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.9.6",
     "reactflow": "^11.10.1",
-    "tailwind-merge": "^2.0.0"
+    "tailwind-merge": "^2.0.0",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@types/d3-force": "^3.0.9",

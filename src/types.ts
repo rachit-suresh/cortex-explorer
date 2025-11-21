@@ -1,18 +1,35 @@
-export type NodeType = 'category' | 'entity';
+export type NodeId = string;
 
-export interface InterestNode {
-  id: string;
-  label: string;
-  type: NodeType;
-  children?: InterestNode[];
-  parentId?: string;
-  description?: string;
-  image?: string; // Optional image for visual richness
+export interface GraphNode {
+  id: NodeId; // Normalized: "music:metal:tdwp" or UUID
+  label: string; // Display: "The Devil Wears Prada"
+  type: "category" | "entity" | "root";
+  data: {
+    description?: string;
+    attributes?: Record<string, any>; // e.g., { genre: "Metalcore" }
+  };
+  // Visual metadata
+  position: { x: number; y: number };
 }
 
-export interface UserInterests {
-  // Flat list of selected node IDs for easy lookup
-  selectedIds: string[];
-  // The actual tree structure of selected interests (optional, can be derived)
-  nodes: InterestNode[];
+export interface GraphEdge {
+  id: string;
+  source: NodeId;
+  target: NodeId;
+  label?: string; // e.g., "is_genre_of"
+}
+
+export interface GraphState {
+  nodes: Record<NodeId, GraphNode>;
+  edges: GraphEdge[];
+}
+
+// Schema for LLM Output
+export interface GeneratedPath {
+  disambiguation: string; // "Song by The Devil Wears Prada"
+  path: {
+    name: string;
+    type: "category" | "entity";
+    attributes?: any;
+  }[];
 }

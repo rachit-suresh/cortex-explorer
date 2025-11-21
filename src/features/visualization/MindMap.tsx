@@ -12,6 +12,8 @@ import "reactflow/dist/style.css";
 import { useGraphStore } from "../../store/graphStore";
 import { getLayoutedElements } from "./GraphLayout";
 import { Search, Loader2 } from "lucide-react";
+import { CustomNode } from "./CustomNode";
+import { getNodeColor } from "../../utils/colorUtils";
 
 interface MindMapProps {
   mode?: "personal" | "global";
@@ -31,24 +33,33 @@ export const MindMap = ({ mode = "personal" }: MindMapProps) => {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Custom node types
+  const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
+
   // Convert Store Data to React Flow Data
   const { layoutedNodes, layoutedEdges } = useMemo(() => {
-    const flowNodes: Node[] = Object.values(storeNodes).map((n) => ({
-      id: n.id,
-      data: { label: n.label, ...n.data },
-      position: n.position,
-      type: "default",
-      style: {
-        background: "#fff",
-        border: "2px solid #000",
-        boxShadow: "4px 4px 0px #000",
-        borderRadius: "0px",
-        padding: "10px",
-        fontWeight: "bold",
-        width: 150,
-        textAlign: "center",
-      },
-    }));
+    // Find parent for each node to assign colors
+    const getParentId = (nodeId: string): string | null => {
+      const parentEdge = storeEdges.find((e) => e.target === nodeId);
+      return parentEdge?.source || null;
+    };
+
+    const flowNodes: Node[] = Object.values(storeNodes).map((n) => {
+      const parentId = getParentId(n.id);
+      const nodeColor = getNodeColor(n.id, parentId, n.type, n.color);
+
+      return {
+        id: n.id,
+        data: {
+          label: n.label,
+          color: nodeColor,
+          nodeType: n.type,
+          ...n.data,
+        },
+        position: n.position,
+        type: "custom",
+      };
+    });
 
     const flowEdges: Edge[] = storeEdges.map((e) => ({
       id: e.id,
@@ -90,6 +101,7 @@ export const MindMap = ({ mode = "personal" }: MindMapProps) => {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
         fitView
         attributionPosition="bottom-right"
       >

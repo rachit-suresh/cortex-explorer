@@ -1,9 +1,9 @@
-import { GeneratedPath } from "../types";
+import { GeneratedPath, GraphState } from "../types";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const generateInterestPath = async (
   query: string,
-  context: string[]
+  currentGraph: GraphState
 ): Promise<GeneratedPath> => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -20,28 +20,74 @@ export const generateInterestPath = async (
   console.log(`[AI Service] Using model: ${modelName}`);
   const model = genAI.getGenerativeModel({ model: modelName });
 
+  // Build comprehensive graph context
+  const nodes = Object.values(currentGraph.nodes);
+  const edges = currentGraph.edges;
+
+  // Create a structured representation of the graph
+  const graphContext = nodes
+    .map((node) => {
+      const children = edges
+        .filter((e) => e.source === node.id)
+        .map((e) => currentGraph.nodes[e.target]?.label)
+        .filter(Boolean);
+
+      return `${node.label} (${node.type})${
+        children.length > 0 ? ` -> [${children.join(", ")}]` : ""
+      }`;
+    })
+    .join("; ");
+
+  const rootCategories = nodes
+    .filter((n) => n.type === "root")
+    .map((n) => n.label)
+    .join(", ");
+
   const prompt = `
     You are an expert ontology engineer.
     Identify the possible meanings of the term '${query}'.
     
-    Context (Existing Root Categories): ${context.join(", ")}
+    EXISTING GRAPH STRUCTURE (use these exact nodes to avoid duplicates):
+    ${graphContext}
     
-    If it fits an existing root category, map it there. If it requires a new category, define it.
+    Root Categories: ${rootCategories}
+    Total Nodes: ${nodes.length}
+    
+    CRITICAL: Before creating a new node, check if it already exists in the graph above.
+    - If "${query}" or a similar term already exists, reuse that exact path.
+    - If a parent category exists (e.g., "Music", "Sports"), connect to it.
+    - Only create new nodes if they don't exist in the current graph.
+    
     Output a hierarchical path from Root -> Leaf.
+    
+    IMPORTANT: You can (and should) include AS MANY subcategory levels as needed to properly classify the concept.
+    The path should be as detailed and hierarchical as necessary. Examples:
+    - Simple: Root -> Category -> Entity
+    - Moderate: Root -> Category -> Sub-Category -> Entity
+    - Complex: Root -> Category -> Sub-Category -> Sub-Sub-Category -> Entity
+    
+    Don't limit yourself to just one subcategory level. Add as many intermediate categories as make sense for proper classification.
     
     Return ONLY valid JSON matching this schema (no markdown formatting):
     {
       "disambiguation": "string description of what this is",
       "path": [
         { "name": "Root Category", "type": "category" },
-        { "name": "Sub Category", "type": "category" },
-        { "name": "Entity Name", "type": "entity", "attributes": { "key": "value" } }
+        { "name": "Main Category", "type": "category" },
+        { "name": "Sub Category 1", "type": "category" },
+        { "name": "Sub Category 2", "type": "category" },
+        { "name": "Sub Category N (as many as needed)", "type": "category" },
+        { "name": "Final Entity Name", "type": "entity", "attributes": { "key": "value" } }
       ]
     }
+    
+    Note: The example above shows multiple subcategories - use as many as appropriate for the concept.
   `;
 
   console.log(`[AI Service] Generating path for query: "${query}"`);
-  console.log(`[AI Service] Context roots: [${context.join(", ")}]`);
+  console.log(
+    `[AI Service] Graph context: ${nodes.length} nodes, ${edges.length} edges`
+  );
 
   try {
     // Use the low-latency Flash-Lite model by default; this provides fast turn-around

@@ -10,6 +10,7 @@ export interface GraphNode {
   };
   // Visual metadata
   position: { x: number; y: number };
+  color?: string; // Custom color for user-defined nodes, or auto-assigned based on parent
 }
 
 export interface GraphEdge {

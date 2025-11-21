@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { GraphState, GraphNode, GraphEdge, NodeId } from "../types";
 import { mergePathToGraph, PathStep } from "../utils/graphUtils";
 import { generateInterestPath } from "../services/ai";
+import { logger } from "../utils/logger";
 
 interface GraphStore extends GraphState {
   // Actions
@@ -57,7 +58,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
   setEdges: (edges) => set({ edges }),
 
   addNode: (node) => {
-    console.log(`[Graph Store] Adding node:`, {
+    logger.log(`[Graph Store] Adding node:`, {
       id: node.id,
       label: node.label,
       type: node.type,
@@ -68,7 +69,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
   },
 
   addEdge: (edge) => {
-    console.log(`[Graph Store] Adding edge:`, {
+    logger.log(`[Graph Store] Adding edge:`, {
       id: edge.id,
       source: edge.source,
       target: edge.target,
@@ -79,7 +80,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
   },
 
   deleteNode: (nodeId) => {
-    console.log(`[Graph Store] 🗑️ Deleting node: ${nodeId}`);
+    logger.log(`[Graph Store] 🗑️ Deleting node: ${nodeId}`);
     set((state) => {
       const newNodes = { ...state.nodes };
       delete newNodes[nodeId];
@@ -89,7 +90,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
         (e) => e.source !== nodeId && e.target !== nodeId
       );
 
-      console.log(
+      logger.log(
         `[Graph Store] ✓ Deleted node and ${
           state.edges.length - newEdges.length
         } connected edges`
@@ -103,7 +104,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
   },
 
   updateNodeColor: (nodeId, color) => {
-    console.log(
+    logger.log(
       `[Graph Store] 🎨 Updating color for node ${nodeId} to ${color}`
     );
     set((state) => ({
@@ -119,7 +120,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
 
   generateAndAddPath: async (query: string) => {
     const startTime = performance.now();
-    console.log(
+    logger.log(
       `[Graph Store] 🚀 Starting path generation for query: "${query}"`
     );
     set({ isLoading: true, error: null });
@@ -127,18 +128,18 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       // Get full graph context for AI to prevent duplicates
       const currentGraph = { nodes: get().nodes, edges: get().edges };
 
-      console.log(`[Graph Store] Current graph state:`, {
+      logger.log(`[Graph Store] Current graph state:`, {
         totalNodes: Object.keys(currentGraph.nodes).length,
         totalEdges: currentGraph.edges.length,
       });
 
       const result = await generateInterestPath(query, currentGraph);
-      console.log(
+      logger.log(
         `[Graph Store] ✓ AI returned path with ${result.path.length} steps`
       );
 
       // Merge logic
-      console.log(`[Graph Store] Merging path into existing graph...`);
+      logger.log(`[Graph Store] Merging path into existing graph...`);
       const newGraph = mergePathToGraph(
         currentGraph,
         result.path as PathStep[]
@@ -149,7 +150,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
         Object.keys(currentGraph.nodes).length;
       const edgesAdded = newGraph.edges.length - currentGraph.edges.length;
 
-      console.log(`[Graph Store] ✓ Merge complete:`, {
+      logger.log(`[Graph Store] ✓ Merge complete:`, {
         nodesAdded,
         edgesAdded,
         totalNodes: Object.keys(newGraph.nodes).length,
@@ -163,13 +164,13 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       });
 
       const endTime = performance.now();
-      console.log(
+      logger.log(
         `[Graph Store] ✓ Path generation completed in ${(
           endTime - startTime
         ).toFixed(2)}ms`
       );
     } catch (err) {
-      console.error(`[Graph Store] ✗ Error generating path:`, err);
+      logger.error(`[Graph Store] ✗ Error generating path:`, err);
       set({ isLoading: false, error: "Failed to generate path" });
     }
   },

@@ -1,5 +1,6 @@
 import { GraphState, GraphNode } from "../types";
 import { get } from "fast-levenshtein";
+import { logger } from "./logger";
 
 // Helper to normalize strings for ID generation and comparison
 export const canonicalize = (text: string): string => {
@@ -19,7 +20,7 @@ export const mergePathToGraph = (
   currentGraph: GraphState,
   path: PathStep[]
 ): GraphState => {
-  console.log(
+  logger.log(
     `[Graph Utils] 🔀 Starting merge for path:`,
     path.map((p) => p.name).join(" -> ")
   );
@@ -30,7 +31,7 @@ export const mergePathToGraph = (
   };
 
   let parentId: string | null = null; // Start at Root (or null if we want to find a root)
-  console.log(
+  logger.log(
     `[Graph Utils] Initial graph has ${
       Object.keys(newGraph.nodes).length
     } nodes and ${newGraph.edges.length} edges`
@@ -41,7 +42,7 @@ export const mergePathToGraph = (
 
   for (let i = 0; i < path.length; i++) {
     const step = path[i];
-    console.log(
+    logger.log(
       `[Graph Utils] Processing step ${i + 1}/${path.length}: "${step.name}" (${
         step.type
       })`
@@ -58,7 +59,7 @@ export const mergePathToGraph = (
         .filter((e) => e.source === parentId)
         .map((e) => e.target);
       siblings = childrenIds.map((id) => newGraph.nodes[id]).filter(Boolean);
-      console.log(
+      logger.log(
         `[Graph Utils] Found ${siblings.length} siblings under parent "${parentId}"`
       );
     } else {
@@ -72,14 +73,14 @@ export const mergePathToGraph = (
         (n) =>
           n.type === "root" || !newGraph.edges.some((e) => e.target === n.id)
       );
-      console.log(
+      logger.log(
         `[Graph Utils] Searching root level, found ${siblings.length} root nodes`
       );
     }
 
     // 2. Fuzzy Find
     // We check if any sibling matches the current step name
-    console.log(
+    logger.log(
       `[Graph Utils] Fuzzy matching "${step.name}" against ${siblings.length} siblings...`
     );
     let match = siblings.find((node) => {
@@ -87,7 +88,7 @@ export const mergePathToGraph = (
       const distance = get(node.label.toLowerCase(), step.name.toLowerCase());
       const fuzzyMatch = distance <= 2;
       if (exactMatch || fuzzyMatch) {
-        console.log(
+        logger.log(
           `[Graph Utils] ✓ Match found: "${node.label}" (exact: ${exactMatch}, distance: ${distance})`
         );
       }
@@ -99,14 +100,14 @@ export const mergePathToGraph = (
 
     if (match) {
       // Traversal: Node exists, move down.
-      console.log(
+      logger.log(
         `[Graph Utils] ⤵ Traversing to existing node: "${match.label}" (${match.id})`
       );
       parentId = match.id;
     } else {
       // Creation: Node doesn't exist. Create it.
       const newNodeId = canonicalize(step.name); // or generate UUID
-      console.log(
+      logger.log(
         `[Graph Utils] ✗ No match found, checking if node exists globally: "${newNodeId}"`
       );
 
@@ -118,7 +119,7 @@ export const mergePathToGraph = (
 
       if (!existingNode) {
         // Create new node
-        console.log(
+        logger.log(
           `[Graph Utils] ✨ Creating new node: "${step.name}" (${newNodeId})`
         );
         existingNode = {
@@ -134,7 +135,7 @@ export const mergePathToGraph = (
         newGraph.nodes[newNodeId] = existingNode;
       } else {
         // Node exists elsewhere, we will just link to it.
-        console.log(
+        logger.log(
           `[Graph Utils] 🔗 Node exists globally, creating cross-link to: "${existingNode.label}"`
         );
       }
@@ -148,7 +149,7 @@ export const mergePathToGraph = (
         );
 
         if (!edgeExists) {
-          console.log(
+          logger.log(
             `[Graph Utils] ➡ Creating edge: ${parentId} -> ${newNodeId}`
           );
           newGraph.edges.push({
@@ -157,7 +158,7 @@ export const mergePathToGraph = (
             target: newNodeId,
           });
         } else {
-          console.log(
+          logger.log(
             `[Graph Utils] ⏭ Edge already exists: ${parentId} -> ${newNodeId}`
           );
         }
@@ -166,7 +167,7 @@ export const mergePathToGraph = (
       parentId = newNodeId;
     }
   }
-  console.log(
+  logger.log(
     `[Graph Utils] ✓ Merge complete. Final: ${
       Object.keys(newGraph.nodes).length
     } nodes, ${newGraph.edges.length} edges`

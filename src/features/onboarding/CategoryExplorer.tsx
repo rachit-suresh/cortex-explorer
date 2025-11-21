@@ -13,6 +13,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useGraphStore } from "../../store/graphStore";
 import { GraphNode } from "../../types";
+import { logger } from "../../utils/logger";
 
 const NEO_COLORS = [
   "bg-[#facc15]", // Yellow
@@ -59,7 +60,7 @@ export const CategoryExplorer = () => {
   });
 
   const handleNodeClick = (node: GraphNode) => {
-    console.log(
+    logger.log(
       `[CategoryExplorer] 👆 User clicked node: "${node.label}" (${node.id})`
     );
     setPath([...path, node]);
@@ -69,22 +70,22 @@ export const CategoryExplorer = () => {
     e.stopPropagation();
     const newSelected = new Set(selectedIds);
     if (newSelected.has(id)) {
-      console.log(`[CategoryExplorer] ☑ User deselected: ${id}`);
+      logger.log(`[CategoryExplorer] ☑ User deselected: ${id}`);
       newSelected.delete(id);
     } else {
-      console.log(`[CategoryExplorer] ✓ User selected: ${id}`);
+      logger.log(`[CategoryExplorer] ✓ User selected: ${id}`);
       newSelected.add(id);
     }
     setSelectedIds(newSelected);
   };
 
   const handleBack = () => {
-    console.log(`[CategoryExplorer] ← User navigated back`);
+    logger.log(`[CategoryExplorer] ← User navigated back`);
     setPath(path.slice(0, -1));
   };
 
   const handleFinish = () => {
-    console.log(
+    logger.log(
       `[CategoryExplorer] ✅ User finished onboarding with ${selectedIds.size} selections:`,
       Array.from(selectedIds)
     );
@@ -98,18 +99,18 @@ export const CategoryExplorer = () => {
   const handleAiSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiSearchQuery.trim() || isLoading) return;
-    console.log(
+    logger.log(
       `[CategoryExplorer] 🔍 User initiated AI search: "${aiSearchQuery}"`
     );
     await generateAndAddPath(aiSearchQuery);
     setAiSearchQuery("");
-    console.log(`[CategoryExplorer] ✓ AI search completed`);
+    logger.log(`[CategoryExplorer] ✓ AI search completed`);
   };
 
   const handleAddCustom = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customName.trim()) return;
-    console.log(
+    logger.log(
       `[CategoryExplorer] ➕ User adding custom node: "${customName}"`
     );
 
@@ -138,7 +139,7 @@ export const CategoryExplorer = () => {
 
     setCustomName("");
     setIsAddingCustom(false);
-    console.log(`[CategoryExplorer] ✓ Custom node added: ${newNodeId}`);
+    logger.log(`[CategoryExplorer] ✓ Custom node added: ${newNodeId}`);
   };
 
   return (

@@ -1,5 +1,6 @@
 import { GeneratedPath, GraphState } from "../types";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { logger } from "../utils/logger";
 
 export const generateInterestPath = async (
   query: string,
@@ -11,13 +12,13 @@ export const generateInterestPath = async (
     throw new Error("Missing VITE_GEMINI_API_KEY in .env file");
   }
 
-  console.log("[AI Service] Initializing Gemini AI service");
+  logger.log("[AI Service] Initializing Gemini AI service");
   const genAI = new GoogleGenerativeAI(apiKey);
   // Allow using an environment override for the model name. Default to Gemini 2.5 Flash-Lite
   // Flash-Lite is a latency-optimized version suitable for interactive flows.
   const modelName =
     import.meta.env.VITE_GEMINI_MODEL || "gemini-2.5-flash-lite";
-  console.log(`[AI Service] Using model: ${modelName}`);
+  logger.log(`[AI Service] Using model: ${modelName}`);
   const model = genAI.getGenerativeModel({ model: modelName });
 
   // Build comprehensive graph context
@@ -84,8 +85,8 @@ export const generateInterestPath = async (
     Note: The example above shows multiple subcategories - use as many as appropriate for the concept.
   `;
 
-  console.log(`[AI Service] Generating path for query: "${query}"`);
-  console.log(
+  logger.log(`[AI Service] Generating path for query: "${query}"`);
+  logger.log(
     `[AI Service] Graph context: ${nodes.length} nodes, ${edges.length} edges`
   );
 
@@ -95,22 +96,22 @@ export const generateInterestPath = async (
     // output parsing logic and schema enforcement remains unchanged.
     let result;
     try {
-      console.log(`[AI Service] Calling ${modelName} API...`);
+      logger.log(`[AI Service] Calling ${modelName} API...`);
       result = await model.generateContent(prompt);
-      console.log(`[AI Service] ✓ Received response from ${modelName}`);
+      logger.log(`[AI Service] ✓ Received response from ${modelName}`);
     } catch (err) {
       // If the model isn't available or errors out, attempt a safe fallback to `gemini-pro`.
-      console.warn(
+      logger.warn(
         `[AI Service] ✗ Model ${modelName} failed, attempting fallback to gemini-pro.`,
         err
       );
       if (modelName !== "gemini-pro") {
-        console.log(`[AI Service] Retrying with gemini-pro fallback...`);
+        logger.log(`[AI Service] Retrying with gemini-pro fallback...`);
         const fallback = genAI.getGenerativeModel({ model: "gemini-pro" });
         result = await fallback.generateContent(prompt);
-        console.log(`[AI Service] ✓ Fallback successful with gemini-pro`);
+        logger.log(`[AI Service] ✓ Fallback successful with gemini-pro`);
       } else {
-        console.error(
+        logger.error(
           `[AI Service] ✗ Fallback failed, gemini-pro is already being used`
         );
         throw err;
@@ -119,28 +120,28 @@ export const generateInterestPath = async (
     const response = await result.response;
     const text = response.text();
 
-    console.log(`[AI Service] Raw response length: ${text?.length || 0} chars`);
+    logger.log(`[AI Service] Raw response length: ${text?.length || 0} chars`);
 
     if (!text) {
-      console.error(`[AI Service] ✗ No content received from LLM`);
+      logger.error(`[AI Service] ✗ No content received from LLM`);
       throw new Error("No content received from LLM");
     }
 
     // Clean up markdown code blocks if present
     const cleanJson = text.replace(/\`\`\`json\n?|\n?\`\`\`/g, "").trim();
-    console.log(
+    logger.log(
       `[AI Service] Cleaned JSON preview: ${cleanJson.substring(0, 200)}...`
     );
 
     const parsed = JSON.parse(cleanJson);
-    console.log(`[AI Service] ✓ Successfully parsed JSON response`);
-    console.log(
+    logger.log(`[AI Service] ✓ Successfully parsed JSON response`);
+    logger.log(
       `[AI Service] Generated path:`,
       parsed.path.map((p: any) => p.name).join(" -> ")
     );
     return parsed as GeneratedPath;
   } catch (error) {
-    console.error("[AI Service] ✗ Fatal error:", error);
+    logger.error("[AI Service] ✗ Fatal error:", error);
     throw error;
   }
 };

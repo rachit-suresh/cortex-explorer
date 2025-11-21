@@ -1,18 +1,25 @@
 import { memo, useState } from "react";
 import { Handle, Position, NodeProps } from "reactflow";
-import { Trash2, Palette } from "lucide-react";
+import { Palette } from "lucide-react";
 import { useGraphStore } from "../../store/graphStore";
 
 export const CustomNode = memo(({ id, data }: NodeProps) => {
   const { deleteNode, updateNodeColor } = useGraphStore();
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setShowContextMenu(true);
+  };
+
+  const handleDelete = () => {
     if (window.confirm(`Delete "${data.label}"?`)) {
       deleteNode(id);
     }
+    setShowContextMenu(false);
   };
 
   const handleColorChange = (color: string) => {
@@ -24,46 +31,33 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
   const isCustomNode = id.startsWith("custom-");
 
   return (
-    <div
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="relative group"
-    >
-      <Handle type="target" position={Position.Top} />
-
+    <>
       <div
-        className="px-4 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-bold text-center min-w-[150px] relative"
-        style={{ backgroundColor: nodeColor }}
+        onContextMenu={handleContextMenu}
+        onClick={() => setShowContextMenu(false)}
+        className="relative group"
       >
-        {/* Node Label */}
-        <div className="text-sm break-words">{data.label}</div>
+        <Handle type="target" position={Position.Top} />
 
-        {/* Hover Actions */}
-        {isHovered && (
-          <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex gap-2 bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] p-1">
-            {/* Color Picker Button - only for custom nodes */}
-            {isCustomNode && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowColorPicker(!showColorPicker);
-                }}
-                className="p-1 hover:bg-gray-100 border border-black"
-                title="Change color"
-              >
-                <Palette className="w-4 h-4" />
-              </button>
-            )}
+        <div
+          className="px-4 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-bold text-center min-w-[150px] relative cursor-pointer hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+          style={{ backgroundColor: nodeColor }}
+        >
+          {/* Node Label */}
+          <div className="text-sm break-words">{data.label}</div>
 
-            {/* Delete Button */}
-            <button
-              onClick={handleDelete}
-              className="p-1 hover:bg-red-100 border border-black"
-              title="Delete node"
-            >
-              <Trash2 className="w-4 h-4 text-red-600" />
-            </button>
-          </div>
+        {/* Color Picker Icon - only for custom nodes */}
+        {isCustomNode && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowColorPicker(!showColorPicker);
+            }}
+            className="absolute -top-2 -right-2 p-1 bg-white border-2 border-black rounded-full hover:bg-gray-100"
+            title="Change color"
+          >
+            <Palette className="w-3 h-3" />
+          </button>
         )}
 
         {/* Color Picker Dropdown */}
@@ -102,6 +96,40 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
 
       <Handle type="source" position={Position.Bottom} />
     </div>
+
+    {/* Context Menu */}
+    {showContextMenu && (
+      <>
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowContextMenu(false)}
+        />
+        <div
+          className="fixed bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 min-w-[150px]"
+          style={{ left: contextMenuPos.x, top: contextMenuPos.y }}
+        >
+          {isCustomNode && (
+            <button
+              onClick={() => {
+                setShowColorPicker(true);
+                setShowContextMenu(false);
+              }}
+              className="w-full px-4 py-2 text-left hover:bg-yellow-100 border-b-2 border-black flex items-center gap-2 font-bold"
+            >
+              <Palette className="w-4 h-4" />
+              Change Color
+            </button>
+          )}
+          <button
+            onClick={handleDelete}
+            className="w-full px-4 py-2 text-left hover:bg-red-100 flex items-center gap-2 font-bold text-red-600"
+          >
+            🗑️ Delete Node
+          </button>
+        </div>
+      </>
+    )}
+  </>
   );
 });
 

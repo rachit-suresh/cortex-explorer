@@ -21,10 +21,13 @@ export const Layout = ({ children }: LayoutProps) => {
                 {(() => {
                   const loc = useLocation();
                   // Show the original "MindMap" branding for the map and onboarding routes
-                  if (loc.pathname.startsWith('/map') || loc.pathname.startsWith('/onboarding')) {
-                    return 'MindMap';
+                  if (
+                    loc.pathname.startsWith("/map") ||
+                    loc.pathname.startsWith("/onboarding")
+                  ) {
+                    return "MindMap";
                   }
-                  return 'Cortex Explorer';
+                  return "Cortex Explorer";
                 })()}
               </span>
             </Link>

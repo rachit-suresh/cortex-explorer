@@ -15,9 +15,12 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
     setShowContextMenu(true);
   };
 
-  const handleDelete = () => {
-    if (window.confirm(`Delete "${data.label}"?`)) {
-      deleteNode(id);
+  const handleDelete = (cascade: boolean = false) => {
+    const message = cascade 
+      ? `Delete "${data.label}" and all its children?`
+      : `Delete "${data.label}"?`;
+    if (window.confirm(message)) {
+      deleteNode(id, cascade);
     }
     setShowContextMenu(false);
   };
@@ -121,10 +124,16 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
             </button>
           )}
           <button
-            onClick={handleDelete}
-            className="w-full px-4 py-2 text-left hover:bg-red-100 flex items-center gap-2 font-bold text-red-600"
+            onClick={() => handleDelete(false)}
+            className="w-full px-4 py-2 text-left hover:bg-red-100 border-b-2 border-black flex items-center gap-2 font-bold text-red-600"
           >
-            🗑️ Delete Node
+            🗑️ Delete Node Only
+          </button>
+          <button
+            onClick={() => handleDelete(true)}
+            className="w-full px-4 py-2 text-left hover:bg-red-200 flex items-center gap-2 font-bold text-red-700"
+          >
+            🗑️ Delete Node + Children
           </button>
         </div>
       </>

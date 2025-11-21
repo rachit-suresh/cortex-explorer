@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import { BrainCircuit, Sparkles } from "lucide-react";
 import { ReactNode } from "react";
 
@@ -18,18 +18,7 @@ export const Layout = ({ children }: LayoutProps) => {
                 <BrainCircuit className="w-6 h-6 text-black" />
               </div>
               <span className="text-2xl font-black tracking-tighter uppercase">
-                {(() => {
-                  const loc = useLocation();
-                  // Show the original "MindMap" branding for the map and onboarding routes
-                  if (
-                    loc.pathname.startsWith("/map") ||
-                    loc.pathname.startsWith("/onboarding")
-                  ) {
-                    return "MindMap";
-                  }
-                  return "Cortex Explorer";
-                })()}
-              </span>
+                Cortex Explorer`r`n              </span>
             </Link>
 
             <div className="flex items-center gap-6">

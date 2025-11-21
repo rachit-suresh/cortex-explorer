@@ -10,7 +10,7 @@ interface GraphStore extends GraphState {
   setEdges: (edges: GraphEdge[]) => void;
   addNode: (node: GraphNode) => void;
   addEdge: (edge: GraphEdge) => void;
-  deleteNode: (nodeId: NodeId) => void;
+  deleteNode: (nodeId: NodeId, cascade?: boolean) => void;
   updateNodeColor: (nodeId: NodeId, color: string) => void;
 
   // Complex Actions
@@ -79,19 +79,35 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
     }));
   },
 
-  deleteNode: (nodeId) => {
-    logger.log(`[Graph Store] 🗑️ Deleting node: ${nodeId}`);
+  deleteNode: (nodeId, cascade = false) => {
+    logger.log(`[Graph Store] 🗑️ Deleting node: ${nodeId} (cascade: ${cascade})`);
     set((state) => {
       const newNodes = { ...state.nodes };
-      delete newNodes[nodeId];
+      const nodesToDelete = new Set([nodeId]);
 
-      // Remove all edges connected to this node
+      // If cascade, find all descendants
+      if (cascade) {
+        const findChildren = (parentId: string) => {
+          state.edges.forEach((edge) => {
+            if (edge.source === parentId && !nodesToDelete.has(edge.target)) {
+              nodesToDelete.add(edge.target);
+              findChildren(edge.target);
+            }
+          });
+        };
+        findChildren(nodeId);
+      }
+
+      // Delete all nodes
+      nodesToDelete.forEach((id) => delete newNodes[id]);
+
+      // Remove all edges connected to deleted nodes
       const newEdges = state.edges.filter(
-        (e) => e.source !== nodeId && e.target !== nodeId
+        (e) => !nodesToDelete.has(e.source) && !nodesToDelete.has(e.target)
       );
 
       logger.log(
-        `[Graph Store] ✓ Deleted node and ${
+        `[Graph Store] ✓ Deleted ${nodesToDelete.size} node(s) and ${
           state.edges.length - newEdges.length
         } connected edges`
       );

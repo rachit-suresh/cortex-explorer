@@ -119,9 +119,22 @@ export const MindMap = ({ mode: _mode = "personal" }: MindMapProps) => {
 
   return (
     <div
-      className="w-full bg-yellow-50 relative"
-      style={{ minHeight: "60vh", height: "80vh" }}
+      className="w-full relative"
+      style={{ 
+        minHeight: "60vh", 
+        height: "80vh",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%)",
+        backgroundSize: "400% 400%",
+        animation: "gradient 15s ease infinite"
+      }}
     >
+      <style>{`
+        @keyframes gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+      `}</style>
       <ReactFlow
         nodes={nodes}
         edges={edges}
